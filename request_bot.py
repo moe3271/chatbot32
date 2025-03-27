@@ -8,7 +8,7 @@ load_dotenv()
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
 WEBHOOK_URL = os.getenv("https://api.telegram.org/bot7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc/setWebhook?url=https://telegram-bot-starter.up.railway.app/")
-print("TOKEN =", TOKEN)
+print("Bot is starting...")
 from telebot import TeleBot
 bot = TeleBot(TOKEN)
 app = Flask(__name__)
