@@ -5,3 +5,4 @@ aiohttp==3.9.1
 
 pyTelegramBotAPI
 Flask
+gunicorn
