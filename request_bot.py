@@ -4,6 +4,15 @@ from dotenv import load_dotenv
 from telebot import TeleBot, types
 from telebot.types import Update
 from flask import Flask, request, jsonify
+import threading
+def keep_alive():
+    try:
+        requests.get("https://your-bot-name.up.railway.app/")
+    except:
+        pass
+    threading.Timer(300, keep_alive).start()
+
+keep_alive()
 
 # Load environment variables
 load_dotenv()
