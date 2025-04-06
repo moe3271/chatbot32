@@ -96,18 +96,14 @@ def webhook():
     except Exception as e:
         logging.exception("💥 Exception while processing webhook")
         return jsonify({"error": str(e)}), 500
-@app.before_request
-# ✅ Set webhook only once, like a gentleman
-def set_webhook_once():
-    try:
+@app.before_first_request
+def activate_bot():
+    if not getattr(app, 'webhook_set', False):
         bot.remove_webhook()
-        success = bot.set_webhook(url=WEBHOOK_URL)
-        if success:
-            logging.info(f"✅ Webhook set to {WEBHOOK_URL}")
-        else:
-            logging.warning("⚠️ Failed to set webhook!")
-    except Exception as e:
-        logging.error(f"💥 Failed to set webhook: {e}")
+        bot.set_webhook(url=WEBHOOK_URL)
+        app.webhook_set = True
+        logging.info(f"Webhook set to {WEBHOOK_URL}")
+
 
 
 with app.test_request_context():
