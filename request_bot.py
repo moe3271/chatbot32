@@ -97,19 +97,29 @@ def webhook():
         logging.exception("💥 Exception while processing webhook")
         return jsonify({"error": str(e)}), 500
 @app.before_request
-def activate_bot():
-    bot.remove_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)
-    logging.info(f"Webhook set to {WEBHOOK_URL}")
+# ✅ Set webhook only once, like a gentleman
+def set_webhook_once():
+    try:
+        bot.remove_webhook()
+        success = bot.set_webhook(url=WEBHOOK_URL)
+        if success:
+            logging.info(f"✅ Webhook set to {WEBHOOK_URL}")
+        else:
+            logging.warning("⚠️ Failed to set webhook!")
+    except Exception as e:
+        logging.error(f"💥 Failed to set webhook: {e}")
+
 
 with app.test_request_context():
     print("📌 Registered Flask Routes:")
     print(app.url_map)
 
 if __name__ == "__main__":
+    set_webhook_once()
     logging.info("🚀 Starting Flask app...")
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
