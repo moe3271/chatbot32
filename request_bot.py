@@ -1,125 +1,78 @@
 import os
 import logging
 from dotenv import load_dotenv
-from telebot import TeleBot, types
-from telebot.types import Update
-from flask import Flask, request, jsonify
-import threading
-import requests
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
+from telegram.ext import (
+    Application, CommandHandler, MessageHandler, ContextTypes,
+    filters, CallbackContext
+)
 
-# 🔁 Keep-alive thread for Railway
-def keep_alive():
-    try:
-        requests.get("https://chatbot32-production.up.railway.app/")
-    except:
-        pass
-    threading.Timer(300, keep_alive).start()
-
-keep_alive()
-
-# 📦 Load environment variables
+# Load .env vars
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
-ADMIN_ID = os.getenv("ADMIN_ID")
-CHAT_ID = os.getenv("CHAT_ID")  # 🆕 Group chat ID from .env
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")
 
-if not TOKEN or not CHAT_ID:
-    raise ValueError("TOKEN and CHAT_ID must be set in environment variables, you magnificent twat.")
+if not TOKEN or not GROUP_CHAT_ID:
+    raise ValueError("TOKEN or GROUP_CHAT_ID not set, you magnificent twat.")
 
-WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
-# 🧠 Logging like a proper gent
-logging.basicConfig(level=logging.DEBUG)
-
-app = Flask(__name__)
-bot = TeleBot(TOKEN)
+# Dictionary to store user data
 user_data = {}
 
-@app.route("/")
-def home():
-    return "البوت يعمل بنجاح!"
+# Command: /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    button = KeyboardButton("📱 أرسل رقم هاتفك", request_contact=True)
+    markup = ReplyKeyboardMarkup([[button]], one_time_keyboard=True, resize_keyboard=True)
+    await update.message.reply_text("مرحباً! الرجاء إرسال رقم هاتفك للمتابعة.", reply_markup=markup)
 
-@bot.message_handler(commands=["start"])
-def start(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button = types.KeyboardButton("📱 أرسل رقم هاتفك", request_contact=True)
-    markup.add(button)
-    bot.send_message(
-        message.chat.id,
-        "مرحباً! الرجاء إرسال رقم هاتفك للمتابعة.",
-        reply_markup=markup
-    )
+# Contact handler
+async def handle_contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    contact = update.message.contact.phone_number
+    user_data[user.id] = {"phone": contact, "orders": []}
+    await update.message.reply_text(f"📞 تم استلام رقم هاتفك: {contact}\nأرسل الآن نوع الأسمنت والكمية المطلوبة.")
 
-@bot.message_handler(content_types=["contact"])
-def contact_handler(message):
-    if message.contact is not None:
-        phone_number = message.contact.phone_number
-        user_data[message.chat.id] = {"phone": phone_number}
-        bot.send_message(
-            message.chat.id,
-            f"📞 تم استلام رقم هاتفك بنجاح: {phone_number}\nأرسل الآن نوع الأسمنت والكمية المطلوبة."
-        )
-
-@bot.message_handler(func=lambda msg: True)
-def handle_request(message):
-    phone = user_data.get(message.chat.id, {}).get("phone")
-    if not phone:
-        bot.send_message(message.chat.id, "يرجى إرسال رقم هاتفك أولاً بالضغط على الزر أدناه.")
-        start(message)
+# Message handler (order)
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if user.id not in user_data or "phone" not in user_data[user.id]:
+        await update.message.reply_text("يرجى إرسال رقم هاتفك أولاً.")
         return
 
-    order_text = f"طلب جديد:\n📞 رقم الهاتف: {phone}\n📦 الطلب: {message.text}"
-    
-    # ✉️ Send to admin
-    bot.send_message(ADMIN_ID, order_text)
+    order = update.message.text
+    user_data[user.id]["orders"].append(order)
+    phone = user_data[user.id]["phone"]
+    message = f"طلب جديد:\n📞 {phone}\n📦 {order}"
 
-    # 📤 Send to group
-    bot.send_message(CHAT_ID, order_text)
+    # Send to group
+    await context.bot.send_message(chat_id=GROUP_CHAT_ID, text=message)
+    await update.message.reply_text("✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
 
-    bot.send_message(message.chat.id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
+# /myrequests command
+async def my_requests(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+    if user.id not in user_data or not user_data[user.id]["orders"]:
+        await update.message.reply_text("لا توجد طلبات محفوظة لك.")
+        return
 
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    try:
-        logging.info("📩 Webhook hit! Telegram has arrived.")
-        logging.debug("🔍 Headers: %s", request.headers)
-        logging.debug("📦 Raw Data: %s", request.data)
+    orders = "\n".join(f"- {o}" for o in user_data[user.id]["orders"])
+    await update.message.reply_text(f"🗂 طلباتك السابقة:\n{orders}")
 
-        if not request.is_json:
-            logging.warning("⛔️ Not a JSON payload!")
-            return jsonify({"error": "Expected JSON"}), 400
+# Set up app
+app = Application.builder().token(TOKEN).build()
 
-        update_data = request.get_json()
-        logging.info("✅ Parsed update JSON: %s", update_data)
+# Register handlers
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("myrequests", my_requests))
+app.add_handler(MessageHandler(filters.CONTACT, handle_contact))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-        if not update_data:
-            logging.warning("🤷‍♂️ Empty update received.")
-            return jsonify({"error": "Empty request body"}), 400
-
-        update = Update.de_json(update_data)
-        bot.process_new_updates([update])
-        return "OK", 200
-
-    except Exception as e:
-        logging.exception("💥 Exception while processing webhook")
-        return jsonify({"error": str(e)}), 500
-
-@app.before_request
-def activate_bot():
-    if not getattr(app, 'webhook_set', False):
-        bot.remove_webhook()
-        bot.set_webhook(url=WEBHOOK_URL)
-        app.webhook_set = True
-        logging.info(f"Webhook set to {WEBHOOK_URL}")
-
-with app.test_request_context():
-    print("📌 Registered Flask Routes:")
-    print(app.url_map)
-
+# Run the bot
 if __name__ == "__main__":
-    logging.info("🚀 Starting Flask app...")
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    print("🤖 Bot is alive and kicking.")
+    app.run_polling()
 
 
 
