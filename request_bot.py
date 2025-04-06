@@ -65,27 +65,28 @@ def handle_request(message):
 @app.route("/7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc", methods=["POST"])
 def webhook():
     try:
-        logging.debug("Received request: %s", request.data)
+        logging.info("📩 Webhook hit! Telegram has arrived.")
+        logging.debug("🔍 Headers: %s", request.headers)
+        logging.debug("📦 Raw Data: %s", request.data)
 
         if not request.is_json:
-            logging.error("Invalid request: Not JSON")
-            return jsonify({"error": "Invalid request, expected JSON"}), 400
+            logging.warning("⛔️ Not a JSON payload!")
+            return jsonify({"error": "Expected JSON"}), 400
 
         update_data = request.get_json()
-        logging.info(f"📥 Incoming update: {update_data}")
+        logging.info("✅ Parsed update JSON: %s", update_data)
 
         if not update_data:
-            logging.error("Empty JSON received")
+            logging.warning("🤷‍♂️ Empty update received.")
             return jsonify({"error": "Empty request body"}), 400
 
         update = Update.de_json(update_data)
         bot.process_new_updates([update])
-
         return "OK", 200
-    except Exception as e:
-        logging.exception("Error processing request")
-        return jsonify({"error": str(e)}), 500
 
+    except Exception as e:
+        logging.exception("💥 Exception while processing webhook")
+        return jsonify({"error": str(e)}), 500
 @app.before_request
 def activate_bot():
     bot.remove_webhook()
