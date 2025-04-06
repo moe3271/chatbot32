@@ -80,6 +80,8 @@ def webhook():
             return jsonify({"error": "Invalid request, expected JSON"}), 400
 
         update_data = request.get_json()
+        logging.info(f"📥 Incoming update: {update_data}")
+
         if not update_data:
             logging.error("Empty JSON received")
             return jsonify({"error": "Empty request body"}), 400
@@ -108,3 +110,5 @@ with app.test_request_context():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8443))
     app.run(host="0.0.0.0", port=port)
+
+
