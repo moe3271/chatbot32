@@ -1,25 +1,37 @@
-from dotenv import load_dotenv
 import os
-from telebot import TeleBot
-from flask import Flask, request
+import logging
+from dotenv import load_dotenv
+from telebot import TeleBot, types
+from telebot.types import Update
+from flask import Flask, request, jsonify
 
+# Load environment variables
 load_dotenv()
 
+# Retrieve Token and Admin ID from environment variables
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
-WEBHOOK_URL = os.getenv("https://api.telegram.org/bot7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc/setWebhook?url=https://telegram-bot-starter.up.railway.app/")
-print("Bot is starting...")
-from telebot import TeleBot
-bot = TeleBot(TOKEN)
+
+# Ensure TOKEN is available
+if not TOKEN:
+    raise ValueError("TOKEN is not set in environment variables!")
+
+# Webhook URL (Ensure this matches your deployed Railway App URL)
+WEBHOOK_URL = f"https://telegram-bot-starter.up.railway.app/{TOKEN}"
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+
+# Initialize Flask
 app = Flask(__name__)
+bot = TeleBot(TOKEN)
+
+# Store user data (phone numbers)
+user_data = {}
+
 @app.route("/")
 def home():
     return "Bot is running!"
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
-
-user_data = {}
 
 # Start command
 @bot.message_handler(commands=["start"])
@@ -54,24 +66,45 @@ def handle_request(message):
         return
 
     order_text = f"طلب جديد:\n📞 رقم الهاتف: {phone}\n📦 الطلب: {message.text}"
-    # Send order to admin
-    bot.send_message("YOUR_ADMIN_CHAT_ID", order_text)
+    bot.send_message(ADMIN_ID, order_text)
     bot.send_message(message.chat.id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
 
-# Webhook route
-@app.route(f"/{TOKEN}", methods=["POST"])
+# ✅ Webhook route — hardcoded to stop Telegram 404
+@app.route("/7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc", methods=["POST"])
 def webhook():
-    bot.process_new_updates([types.Update.de_json(request.stream.read().decode("utf-8"))])
-    return "OK", 200
+    try:
+        logging.debug("Received request: %s", request.data)
+
+        if not request.is_json:
+            logging.error("Invalid request: Not JSON")
+            return jsonify({"error": "Invalid request, expected JSON"}), 400
+
+        update_data = request.get_json()
+        if not update_data:
+            logging.error("Empty JSON received")
+            return jsonify({"error": "Empty request body"}), 400
+
+        update = Update.de_json(update_data)
+        bot.process_new_updates([update])
+
+        return "OK", 200
+    except Exception as e:
+        logging.exception("Error processing request")
+        return jsonify({"error": str(e)}), 500
 
 # Set webhook on startup
 @app.before_request
 def activate_bot():
-    if not getattr(app, 'webhook_set', False):
-        bot.remove_webhook()
-        bot.set_webhook(url=WEBHOOK_URL)
-        app.webhook_set = True
+    bot.remove_webhook()
+    bot.set_webhook(url=WEBHOOK_URL)
+    logging.info(f"Webhook set to {WEBHOOK_URL}")
 
+# ✅ Print all registered routes in Railway logs
+with app.test_request_context():
+    print("📌 Registered Flask Routes:")
+    print(app.url_map)
+
+# Run the Flask server (required for Railway)
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8443))
     app.run(host="0.0.0.0", port=port)
