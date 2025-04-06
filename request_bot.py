@@ -17,7 +17,8 @@ if not TOKEN:
     raise ValueError("TOKEN is not set in environment variables!")
 
 # Webhook URL (Ensure this matches your deployed Railway App URL)
-WEBHOOK_URL = f"https://telegram-bot-starter.up.railway.app/{TOKEN}"
+WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
+
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -70,7 +71,8 @@ def handle_request(message):
     bot.send_message(message.chat.id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
 
 # ✅ Webhook route — hardcoded to stop Telegram 404
-@app.route("/7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc", methods=["POST"])
+@app.route(f"/{TOKEN}", methods=["POST"])
+
 def webhook():
     try:
         logging.debug("Received request: %s", request.data)
