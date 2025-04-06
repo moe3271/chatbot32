@@ -5,28 +5,30 @@ from telebot import TeleBot, types
 from telebot.types import Update
 from flask import Flask, request, jsonify
 import threading
+import requests
+
+# 🔁 Keep-alive thread for Railway
 def keep_alive():
     try:
-        requests.get("https://your-bot-name.up.railway.app/")
+        requests.get("https://chatbot32-production.up.railway.app/")
     except:
         pass
     threading.Timer(300, keep_alive).start()
 
 keep_alive()
 
-# Load environment variables
+# 📦 Load environment variables
 load_dotenv()
-
-# Retrieve Token and Admin ID from environment variables
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")
+CHAT_ID = os.getenv("CHAT_ID")  # 🆕 Group chat ID from .env
 
-if not TOKEN:
-    raise ValueError("TOKEN is not set in environment variables!")
+if not TOKEN or not CHAT_ID:
+    raise ValueError("TOKEN and CHAT_ID must be set in environment variables, you magnificent twat.")
 
 WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
 
-# Logging, because we are professionals, not savages
+# 🧠 Logging like a proper gent
 logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
@@ -35,7 +37,7 @@ user_data = {}
 
 @app.route("/")
 def home():
-    return "Bot is running!"
+    return "البوت يعمل بنجاح!"
 
 @bot.message_handler(commands=["start"])
 def start(message):
@@ -67,11 +69,16 @@ def handle_request(message):
         return
 
     order_text = f"طلب جديد:\n📞 رقم الهاتف: {phone}\n📦 الطلب: {message.text}"
+    
+    # ✉️ Send to admin
     bot.send_message(ADMIN_ID, order_text)
+
+    # 📤 Send to group
+    bot.send_message(CHAT_ID, order_text)
+
     bot.send_message(message.chat.id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
 
-# Webhook route (DO NOT DUPLICATE THIS, you absolute rascal)
-@app.route("/7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc", methods=["POST"])
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
         logging.info("📩 Webhook hit! Telegram has arrived.")
@@ -96,8 +103,8 @@ def webhook():
     except Exception as e:
         logging.exception("💥 Exception while processing webhook")
         return jsonify({"error": str(e)}), 500
-@app.before_request
 
+@app.before_request
 def activate_bot():
     if not getattr(app, 'webhook_set', False):
         bot.remove_webhook()
@@ -105,14 +112,11 @@ def activate_bot():
         app.webhook_set = True
         logging.info(f"Webhook set to {WEBHOOK_URL}")
 
-
-
 with app.test_request_context():
     print("📌 Registered Flask Routes:")
     print(app.url_map)
 
 if __name__ == "__main__":
-    set_webhook_once()
     logging.info("🚀 Starting Flask app...")
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
