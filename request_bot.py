@@ -96,7 +96,8 @@ def webhook():
     except Exception as e:
         logging.exception("💥 Exception while processing webhook")
         return jsonify({"error": str(e)}), 500
-@app.before_first_request
+@app.before_request
+
 def activate_bot():
     if not getattr(app, 'webhook_set', False):
         bot.remove_webhook()
