@@ -22,7 +22,7 @@ load_dotenv()
 
 TOKEN = os.getenv("TOKEN")
 ADMIN_ID = os.getenv("ADMIN_ID")  # Optional: for future use
-GROUP_CHAT_ID = os.getenv("7116729508")  # 🆕 Your Telegram group's chat ID
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID")  # 🆕 Your Telegram group's chat ID
 
 if not TOKEN or not GROUP_CHAT_ID:
     raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
