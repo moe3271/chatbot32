@@ -85,6 +85,8 @@ def handle_order(message):
         f"👤 الاسم: {user.first_name or ''} {user.last_name or ''}\n"
         f"🆔 المستخدم: @{user.username or 'لا يوجد'}\n"
         f"📝 الطلب: {order}"
+        def show_chat_id(message):
+    bot.reply_to(message, f"👀 Chat ID: {message.chat.id}")
     )
 
     bot.send_message(message.chat.id, "📝 تم استلام طلبك! سيتم مراجعته قريباً.")
