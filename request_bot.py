@@ -61,27 +61,23 @@ def handle_id(message):
     bot.send_message(message.chat.id, f"🆔 Chat ID: `{message.chat.id}`", parse_mode="Markdown")
 
 # ==== Handle Contact ====
-@bot.message_handler(func=lambda m: m.text and not m.text.startswith("/") and not m.text.startswith("@") and not m.from_user.is_bot)
+@bot.message_handler(func=lambda m: m.text and not m.contact and not m.text.startswith("/"))
 def handle_order(message):
-    user = message.from_user
-    order = message.text.strip()
-
-    # Optional: Add spam keyword filter
-    spam_keywords = ["vpn", "http", "@", "бот", "free", "7 дней", "🔥", "❤️"]
-    if any(keyword.lower() in order.lower() for keyword in spam_keywords):
-        print("🚫 Spam detected. Ignoring message.")
+    text = message.text.lower()
+    if "speeeedvpnbot" in text or "@speeeedvpnbot" in text or "🔥" in text or "бесплатно" in text:
+        logging.warning("🛑 Spam detected and ignored.")
         return
 
+    user = message.from_user
     order_info = (
         f"📦 طلب جديد!\n\n"
         f"👤 الاسم: {user.first_name or ''} {user.last_name or ''}\n"
         f"🆔 المستخدم: @{user.username or 'لا يوجد'}\n"
-        f"📝 الطلب: {order}"
+        f"📝 الطلب: {message.text}"
     )
 
     bot.send_message(message.chat.id, "📝 تم استلام طلبك! سيتم مراجعته قريباً.")
-    bot.send_message(os.getenv("GROUP_CHAT_ID"), order_info)
-
+    bot.send_message(GROUP_CHAT_ID, order_info)
 # ==== Handle Orders ====
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith("/") and not "@" in m.text and not m.text.lower().startswith("http"))
 def handle_order(message):
