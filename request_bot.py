@@ -56,28 +56,35 @@ def handle_start(message):
     bot.send_message(message.chat.id, "مرحباً! الرجاء إرسال رقم هاتفك بالضغط على الزر أدناه.", reply_markup=markup)
 
 # ==== /id Command ====
-@bot.message_handler(commands=['id'])
-def handle_id(message):
-    bot.send_message(message.chat.id, f"🆔 Chat ID: `{message.chat.id}`", parse_mode="Markdown")
-
-# ==== Handle Contact ====
-@bot.message_handler(func=lambda m: m.text and not m.contact and not m.text.startswith("/"))
+@bot.message_handler(func=lambda m: True)
 def handle_order(message):
-    text = message.text.lower()
-    if "speeeedvpnbot" in text or "@speeeedvpnbot" in text or "🔥" in text or "бесплатно" in text:
-        logging.warning("🛑 Spam detected and ignored.")
+    # ❌ Ignore forwarded messages
+    if message.forward_from or message.forward_from_chat:
+        logging.warning("🔕 Ignored forwarded message.")
         return
 
-    user = message.from_user
-    order_info = (
-        f"📦 طلب جديد!\n\n"
-        f"👤 الاسم: {user.first_name or ''} {user.last_name or ''}\n"
-        f"🆔 المستخدم: @{user.username or 'لا يوجد'}\n"
-        f"📝 الطلب: {message.text}"
-    )
+    # ❌ Ignore messages from bots
+    if message.from_user and message.from_user.is_bot:
+        logging.warning("🤖 Ignored message from bot.")
+        return
 
-    bot.send_message(message.chat.id, "📝 تم استلام طلبك! سيتم مراجعته قريباً.")
-    bot.send_message(GROUP_CHAT_ID, order_info)
+    # ❌ Spam keyword filtering
+    spam_keywords = ["@speeeedvpnbot", "ببساطة", "начать", "бесплатно", "vpn", "🔥"]
+    if any(keyword in message.text.lower() for keyword in spam_keywords):
+        logging.warning("🛑 Spam content detected.")
+        return
+
+    # ✅ Check if user submitted phone first
+    phone = user_data.get(message.chat.id, {}).get("phone")
+    if not phone:
+        bot.send_message(message.chat.id, "يرجى إرسال رقم هاتفك أولاً بالضغط على الزر أدناه.")
+        start(message)
+        return
+
+    # ✅ Send order to group
+    order_text = f"طلب جديد:\n📞 رقم الهاتف: {phone}\n📦 الطلب: {message.text}"
+    bot.send_message(message.chat.id, "✅ تم استلام طلبك، سيتم التواصل معك قريباً.")
+    bot.send_message(GROUP_CHAT_ID, order_text)
 # ==== Handle Orders ====
 @bot.message_handler(func=lambda m: m.text and not m.text.startswith("/") and not "@" in m.text and not m.text.lower().startswith("http"))
 def handle_order(message):
