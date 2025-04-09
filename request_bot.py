@@ -14,7 +14,7 @@ load_dotenv()
 TOKEN = os.environ.get('TOKEN')
 ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID')
 GROUP_CHAT_ID = os.environ.get('GROUP_CHAT_ID')
-PORT = int(os.environ.get("PORT", 5000))
+PORT = int(os.environ.get("PORT", 8483))
 
 
 if not TOKEN or not GROUP_CHAT_ID:
@@ -128,6 +128,6 @@ if __name__ == "__main__":
     bot.set_webhook(url=webhook_url)
     logging.info(f"📡 Webhook set to {webhook_url}")
 
-    PORT = int(os.environ.get("PORT", 5000))
+    PORT = int(os.environ.get("PORT", 8483))
     logging.info(f"🚀 Starting Flask app on port {PORT}")
     app.run(host="0.0.0.0", port=PORT)
