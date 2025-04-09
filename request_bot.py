@@ -14,8 +14,8 @@ load_dotenv()
 
 TOKEN = os.getenv("TOKEN") or "7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc"
 GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID") or "-1002258136452"
-PORT = int(os.getenv("PORT", 8483))
-
+port = int(os.environ.get("PORT", 5000))
+app.run(host="0.0.0.0", port=port)
 if not TOKEN or not GROUP_CHAT_ID:
     raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
 
