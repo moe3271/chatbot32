@@ -119,9 +119,14 @@ def handle_myrequests(message):
 
 # === Start the App ===
 if __name__ == "__main__":
+    # Optional: remove old webhook, set new one
     webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
     bot.remove_webhook()
     time.sleep(1)
     bot.set_webhook(url=webhook_url)
-    print(f"📡 Webhook set to {webhook_url}")
+
+    logging.info(f"📡 Webhook set to {webhook_url}")
+
+    # ✅ Start Flask on correct port
+    PORT = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=PORT)
