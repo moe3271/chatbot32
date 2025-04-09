@@ -16,6 +16,7 @@ ADMIN_CHAT_ID = os.environ.get('ADMIN_CHAT_ID')
 GROUP_CHAT_ID = os.environ.get('GROUP_CHAT_ID')
 PORT = int(os.environ.get("PORT", 5000))
 
+
 if not TOKEN or not GROUP_CHAT_ID:
     raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
 
@@ -119,14 +120,14 @@ def handle_myrequests(message):
 
 # === Start the App ===
 if __name__ == "__main__":
-    # Optional: remove old webhook, set new one
+    logging.basicConfig(level=logging.INFO)
+
     webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
     bot.remove_webhook()
     time.sleep(1)
     bot.set_webhook(url=webhook_url)
-
     logging.info(f"📡 Webhook set to {webhook_url}")
 
-    # ✅ Start Flask on correct port
     PORT = int(os.environ.get("PORT", 5000))
+    logging.info(f"🚀 Starting Flask app on port {PORT}")
     app.run(host="0.0.0.0", port=PORT)
