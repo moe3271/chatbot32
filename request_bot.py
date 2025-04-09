@@ -22,6 +22,9 @@ if not TOKEN or not GROUP_CHAT_ID:
 
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
+@app.route("/", methods=["GET"])
+def health_check():
+    return "Bot is alive and sexy!", 200
 recent_updates = set()
 user_data = {}
 
