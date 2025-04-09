@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+logging.basicConfig(level=logging.INFO)
 import threading
 import requests
 from flask import Flask, request
@@ -131,6 +132,6 @@ if __name__ == "__main__":
     bot.set_webhook(url=webhook_url)
     logging.info(f"📡 Webhook set to {webhook_url}")
 
-    PORT = int(os.environ.get("PORT", 8483))
+    PORT = int(os.environ.get("PORT", "5000"))
     logging.info(f"🚀 Starting Flask app on port {PORT}")
     app.run(host="0.0.0.0", port=PORT)
