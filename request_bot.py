@@ -12,8 +12,9 @@ from dotenv import load_dotenv
 # === ENVIRONMENT ===
 load_dotenv()
 
-TOKEN = os.environ.get("TOKEN")
-GROUP_CHAT_ID = os.environ.get("GROUP_CHAT_ID")  # e.g., -1002258136452
+TOKEN = os.getenv("TOKEN") or "7953137361:AAEeUuW1K0YOgqe9qmeQo7AYb3UXsiI3qPc"
+GROUP_CHAT_ID = os.getenv("GROUP_CHAT_ID") or "-1002258136452"
+PORT = int(os.getenv("PORT", 8483))
 
 if not TOKEN or not GROUP_CHAT_ID:
     raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
@@ -103,7 +104,7 @@ def handle_order(message):
 
     phone = user_data.get(user_id, {}).get("phone")
     if not phone:
-        logging.info("⛔️ Ignoring message from %s: no phone number on file.", user_id)
+        logging.info("❌ Ignoring message from %s: no phone number on file.", user_id)
         return
 
     msg = (
@@ -111,7 +112,7 @@ def handle_order(message):
         f"👤 الاسم: {user.first_name or ''} {user.last_name or ''}\n"
         f"🆔 المستخدم: @{user.username or 'لا يوجد'}\n"
         f"📞 الهاتف: {phone}\n"
-        f"📝 الطلب: {text}"
+        f"📋 الطلب: {text}"
     )
 
     bot.send_message(GROUP_CHAT_ID, msg)
@@ -131,4 +132,4 @@ if __name__ == "__main__":
     time.sleep(1)
     bot.set_webhook(url=webhook_url)
     logging.info(f"📡 Webhook set to {webhook_url}")
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8443)), debug=False)
+    app.run(host="0.0.0.0", port=PORT, debug=False)
