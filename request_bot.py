@@ -5,6 +5,7 @@ from flask import Flask, request
 import threading
 import requests
 import time
+load_dotenv() 
 
 # ==== Configuration ====
 TOKEN = os.environ.get('TOKEN')
