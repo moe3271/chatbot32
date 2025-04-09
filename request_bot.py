@@ -1,11 +1,15 @@
 import os
-import telebot
-from telebot import types
-from flask import Flask, request
+import time
+import logging
 import threading
 import requests
-import time
-load_dotenv() 
+from flask import Flask, request
+import telebot
+from telebot import types
+from collections import deque
+from dotenv import load_dotenv  # 🧙 Required to use load_dotenv()
+
+load_dotenv()  # 🧪 Loads the .env file so environment variables can be accessed
 
 # ==== Configuration ====
 TOKEN = os.environ.get('TOKEN')
