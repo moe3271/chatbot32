@@ -14,7 +14,7 @@ load_dotenv()
 
 TOKEN = os.environ.get("TOKEN")
 GROUP_CHAT_ID = os.environ.get("GROUP_CHAT_ID")
-PORT = int(os.environ.get("PORT", 5000))  # Railway sets this automatically
+PORT = int(os.environ.get("PORT", 8483))
 
 if not TOKEN or not GROUP_CHAT_ID:
     raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
@@ -40,12 +40,12 @@ def telegram_webhook():
     update = telebot.types.Update.de_json(json_str)
 
     if update.update_id in recent_updates:
-        logging.info(f"🔁 Duplicate update ignored: {update.update_id}")
+        logging.info(f"\U0001F501 Duplicate update ignored: {update.update_id}")
         return "OK", 200
 
     recent_updates.append(update.update_id)
     bot.process_new_updates([update])
-    logging.info("📩 Webhook received and processed.")
+    logging.info("\U0001F4E9 Webhook received and processed.")
     return "OK", 200
 
 # === Keep-Alive Ping ===
@@ -112,15 +112,14 @@ def order_handler(message):
     bot.send_message(chat_id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
     logging.info(f"📤 Order forwarded from {chat_id}")
 
-# === Placeholder for /myrequests ===
+# === /myrequests placeholder ===
 @bot.message_handler(commands=["myrequests"])
 def myrequests_handler(message):
     bot.send_message(message.chat.id, "📂 هذه الميزة تحت التطوير حالياً، تابعنا للمزيد!")
 
-# === Webhook Setup ===
-if __name__ != "__main__":
-    webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
-    bot.remove_webhook()
-    time.sleep(1)
-    bot.set_webhook(url=webhook_url)
-    logging.info(f"📡 Webhook set to {webhook_url}")
+# === Webhook setup ===
+webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
+bot.remove_webhook()
+time.sleep(1)
+bot.set_webhook(url=webhook_url)
+logging.info(f"📡 Webhook set to {webhook_url}")
