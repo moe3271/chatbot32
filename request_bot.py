@@ -84,11 +84,13 @@ def webhook():
         if request.headers.get("content-type") == "application/json":
             json_string = request.get_data().decode("utf-8")
             logger.info(f"📥 Incoming update: {json_string}")
-           try:
+
+            try:
                 update = telebot.types.Update.de_json(json_string)
                 bot.process_new_updates([update])
             except Exception as bot_error:
                 logger.error(f"🤖 Bot processing error: {bot_error}", exc_info=True)
+
             return '', 200
         else:
             logger.warning("❌ Invalid content-type")
