@@ -103,6 +103,6 @@ def keep_alive():
 
 # === Startup ===
 app = Flask(__name__)
-    set_webhook()
-    keep_alive()
+    #set_webhook()
+    #keep_alive()
  
