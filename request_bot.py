@@ -1,5 +1,4 @@
 import os
-import time
 import logging
 import threading
 import requests
@@ -7,125 +6,103 @@ from flask import Flask, request
 import telebot
 from telebot import types
 from dotenv import load_dotenv
-from collections import deque
 
-# === Load environment variables ===
+# === Load .env ===
 load_dotenv()
 
-TOKEN = os.environ.get("TOKEN")
-GROUP_CHAT_ID = os.environ.get("GROUP_CHAT_ID")
-PORT = int(os.environ.get("PORT", 8483))
+TOKEN = os.environ.get("TOKEN") or "7953137361:AAGmZapPgoaFpLfsbjIBO8Tl8uEt8-LfWtg"
+ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID") or "-1002258136452"
+WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
 
-if not TOKEN or not GROUP_CHAT_ID:
-    raise ValueError("TOKEN and GROUP_CHAT_ID must be set, you magnificent twat.")
-
-# === Initialize Flask and Bot ===
+# === Global app object for Gunicorn ===
 app = Flask(__name__)
-bot = telebot.TeleBot(TOKEN)
-user_data = {}
-recent_updates = deque(maxlen=100)
 
-# === Logging ===
+# === Setup logging ===
 logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
 
-# === Health check endpoint ===
-@app.route("/", methods=["GET"])
-def health():
-    return "Bot is alive and sexy!", 200
+# === Telegram Bot Setup ===
+bot = telebot.TeleBot(TOKEN)
 
-# === Webhook endpoint ===
-@app.route(f"/{TOKEN}", methods=["POST"])
-def telegram_webhook():
-    json_str = request.stream.read().decode("utf-8")
-    update = telebot.types.Update.de_json(json_str)
+# === Track users who shared phone numbers ===
+user_phones = set()
 
-    if update.update_id in recent_updates:
-        logging.info(f"\U0001F501 Duplicate update ignored: {update.update_id}")
-        return "OK", 200
+# === Spam Keywords (can be expanded) ===
+SPAM_KEYWORDS = [
+    "vpn", "продвижение", "دعم", "ترويج", "subscribe", "مجاني", "click here", "buy now"
+]
 
-    recent_updates.append(update.update_id)
-    bot.process_new_updates([update])
-    logging.info("\U0001F4E9 Webhook received and processed.")
-    return "OK", 200
+# === Spam Check Function ===
+def is_spam(message):
+    if message.from_user.is_bot:
+        return True
+    text = message.text.lower() if message.text else ""
+    return any(spam_word in text for spam_word in SPAM_KEYWORDS)
 
-# === Keep-Alive Ping ===
-def keep_alive():
-    while True:
-        try:
-            requests.get("https://chatbot32-production.up.railway.app/")
-        except Exception as e:
-            logging.warning("Keep-alive ping failed: %s", e)
-        time.sleep(300)
-
-threading.Thread(target=keep_alive, daemon=True).start()
-
-# === Spam Keywords ===
-SPAM_KEYWORDS = ["vpn", "@speeeedvpnbot", "🔥", "t.me", "bot", "7 дней", "бесплатно", "поддерживаются"]
-
-def is_spam(text):
-    return any(keyword in text.lower() for keyword in SPAM_KEYWORDS)
-
-# === /start Command ===
-@bot.message_handler(commands=['start'])
-def start_handler(message):
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    button = types.KeyboardButton("📱 أرسل رقم هاتفك", request_contact=True)
-    markup.add(button)
-    bot.send_message(message.chat.id, "مرحباً! الرجاء إرسال رقم هاتفك بالضغط على الزر أدناه للمتابعة.", reply_markup=markup)
-
-# === Handle Contact ===
+# === Contact Handler ===
 @bot.message_handler(content_types=["contact"])
-def contact_handler(message):
-    phone = message.contact.phone_number
-    user_data[message.chat.id] = {"phone": phone}
-    bot.send_message(
-        message.chat.id,
-        f"📞 تم استلام رقم هاتفك بنجاح: {phone}\nأرسل الآن نوع الأسمنت والكمية المطلوبة."
-    )
-    logging.info(f"📱 Contact saved: {phone} for user {message.chat.id}")
+def handle_contact(message):
+    if message.contact and message.contact.phone_number:
+        user_phones.add(message.from_user.id)
+        bot.reply_to(message, "تم حفظ رقمك بنجاح. الآن يمكنك إرسال طلبك.")
+    else:
+        bot.reply_to(message, "يرجى مشاركة رقم هاتفك.")
 
-# === Handle Orders ===
-@bot.message_handler(func=lambda m: m.text and not m.text.startswith("/"))
-def order_handler(message):
-    user = message.from_user
-    text = message.text
-    chat_id = message.chat.id
-
-    if user.is_bot or is_spam(text):
-        logging.warning(f"⚠️ Spam or bot message ignored: {text}")
-        return
-
-    phone = user_data.get(chat_id, {}).get("phone")
-    if not phone:
-        logging.info(f"⛔️ User {chat_id} has not submitted a phone number.")
-        return
-
-    order_msg = (
-        f"📦 طلب جديد:\n"
-        f"👤 الاسم: {user.first_name or ''} {user.last_name or ''}\n"
-        f"🆔 المستخدم: @{user.username or 'لا يوجد'}\n"
-        f"📞 الهاتف: {phone}\n"
-        f"📝 الطلب: {text}"
-    )
-
-    bot.send_message(GROUP_CHAT_ID, order_msg)
-    bot.send_message(chat_id, "✅ تم استلام طلبك بنجاح، سيتم التواصل معك قريباً.")
-    logging.info(f"📤 Order forwarded from {chat_id}")
-
-# === /myrequests placeholder ===
+# === /myrequests Command ===
 @bot.message_handler(commands=["myrequests"])
-def myrequests_handler(message):
-    bot.send_message(message.chat.id, "📂 هذه الميزة تحت التطوير حالياً، تابعنا للمزيد!")
+def handle_myrequests(message):
+    if message.from_user.id in user_phones:
+        bot.reply_to(message, "سيتم إرسال طلباتك السابقة هنا.")
+    else:
+        bot.reply_to(message, "يرجى أولاً إرسال رقم هاتفك.")
 
-# === Webhook setup ===
-webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
-bot.remove_webhook()
-time.sleep(1)
-bot.set_webhook(url=webhook_url)
-logging.info(f"📡 Webhook set to {webhook_url}")
+# === General Message Handler ===
+@bot.message_handler(func=lambda m: True, content_types=["text"])
+def handle_order(message):
+    if is_spam(message):
+        logger.info(f"Ignored spam from {message.from_user.id}: {message.text}")
+        return
 
-# === Gunicorn/Waitress entrypoint ===
+    if message.from_user.id not in user_phones:
+        bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
+        return
+
+    order_text = f"🆕 طلب جديد:\n👤 {message.from_user.first_name}\n🆔 {message.from_user.id}\n💬 {message.text}"
+    bot.send_message(ADMIN_CHAT_ID, order_text)
+    bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
+
+# === Flask Webhook Route ===
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    if request.headers.get("content-type") == "application/json":
+        json_string = request.get_data().decode("utf-8")
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "", 200
+    return "Invalid content type", 403
+
+# === Set Webhook Automatically ===
+def set_webhook():
+    webhook_set = bot.set_webhook(url=WEBHOOK_URL)
+    logger.info(f"📡 Webhook set to {WEBHOOK_URL}: {webhook_set}")
+
+# === Keep-alive Ping to Prevent Railway Timeout ===
+def keep_alive():
+    def ping():
+        while True:
+            try:
+                requests.get(WEBHOOK_URL)
+                logger.info("🔄 Pinged webhook to keep alive.")
+            except Exception as e:
+                logger.warning(f"⚠️ Keep-alive failed: {e}")
+            time.sleep(600)
+
+    thread = threading.Thread(target=ping)
+    thread.daemon = True
+    thread.start()
+
+# === Startup ===
 if __name__ == "__main__":
-    from waitress import serve
-    logging.info(f"🚀 Starting app on port {PORT}")
-    serve(app, host="0.0.0.0", port=PORT)
+    set_webhook()
+    keep_alive()
+    app.run(host="0.0.0.0", port=8483)
