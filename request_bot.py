@@ -124,13 +124,13 @@ time.sleep(1)
 bot.set_webhook(url=webhook_url)
 logging.info(f"📡 Webhook set to {webhook_url}")
 
-
-if __name__ == "__main__":
-    from waitress import serve
-    webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
+webhook_url = f"https://chatbot32-production.up.railway.app/{TOKEN}"
     bot.remove_webhook()
     time.sleep(1)
     bot.set_webhook(url=webhook_url)
     logging.info(f"📡 Webhook set to {webhook_url}")
     serve(app, host="0.0.0.0", port=PORT)
     app = app
+if __name__ == "__main__":
+    from waitress import serve
+    
