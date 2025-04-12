@@ -77,18 +77,20 @@ def handle_order(message):
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 
 @app.route(f"/{TOKEN}", methods=["POST"])
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
         if request.headers.get("content-type") == "application/json":
             json_string = request.get_data().decode("utf-8")
+            logger.info(f"📥 Incoming update: {json_string}")
             update = telebot.types.Update.de_json(json_string)
             bot.process_new_updates([update])
             return "", 200
         else:
-            logger.warning("🚫 Invalid content type")
+            logger.warning("🚫 Invalid content-type for webhook")
             return "Invalid content type", 403
     except Exception as e:
-        logger.error(f"🔥 Exception in webhook: {e}", exc_info=True)
+        logger.error(f"🔥 Webhook error: {e}", exc_info=True)
         return "Webhook error", 500
 
 def set_webhook():
