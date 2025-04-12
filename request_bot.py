@@ -69,10 +69,10 @@ def handle_order(message):
     if message.from_user.id not in user_phones:
         bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
         return
-   order_text = f"""🆕 طلب جديد:
-👤 {message.from_user.first_name}
-🆔 {message.from_user.id}
-💬 {message.text}"""
+        order_text = f"""🆕 طلب جديد:
+        👤 {message.from_user.first_name}
+        🆔 {message.from_user.id}
+        💬 {message.text}"""
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 
