@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 
 # === Load .env ===
 load_dotenv()
-
-# === Setup logging ===
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
@@ -63,20 +61,22 @@ def handle_myrequests(message):
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def handle_order(message):
     logger.info(f"📨 Received message from {message.from_user.id}: {message.text}")
+    
     if is_spam(message):
         logger.info(f"Ignored spam from {message.from_user.id}: {message.text}")
         return
+    
     if message.from_user.id not in user_phones:
         bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
         return
-        order_text = f"""🆕 طلب جديد:
-        👤 {message.from_user.first_name}
-        🆔 {message.from_user.id}
-        💬 {message.text}"""
+
+    order_text = f"""🆕 طلب جديد:
+👤 {message.from_user.first_name}
+🆔 {message.from_user.id}
+💬 {message.text}"""
+    
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
-
-
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -94,17 +94,17 @@ def webhook():
         logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
         return "Webhook crashed", 500
 
+@app.route("/debug", methods=["GET"])
+def debug():
+    logger.info("🐛 /debug was called")
+    return "Bot is alive!", 200
+
 def set_webhook():
     try:
         success = bot.set_webhook(url=WEBHOOK_URL)
         logger.info(f"📡 Webhook set: {success} => {WEBHOOK_URL}")
     except Exception as e:
         logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
-        app.route("/debug", methods=["GET"])
-def debug():
-    logger.info("🐛 /debug was called")
-    return "Bot is alive!", 200
-
 
 def keep_alive():
     def ping():
