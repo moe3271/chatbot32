@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import threading
 import requests
@@ -10,16 +11,22 @@ from dotenv import load_dotenv
 # === Load .env ===
 load_dotenv()
 
-TOKEN = os.environ.get("TOKEN") or "7953137361:AAGmZapPgoaFpLfsbjIBO8Tl8uEt8-LfWtg"
+# === Setup logging ===
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+
+logger.info("🔍 Bot script is importing...")
+
+# === Read TOKEN from environment or raise error ===
+TOKEN = os.environ.get("TOKEN")
+if not TOKEN:
+    raise ValueError("Missing Telegram BOT TOKEN!")
+
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID") or "-1002258136452"
 WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
 
 # === Global app object for Gunicorn ===
 app = Flask(__name__)
-
-# === Setup logging ===
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
 
 # === Telegram Bot Setup ===
 bot = telebot.TeleBot(TOKEN)
@@ -27,19 +34,17 @@ bot = telebot.TeleBot(TOKEN)
 # === Track users who shared phone numbers ===
 user_phones = set()
 
-# === Spam Keywords (can be expanded) ===
+# === Spam Keywords ===
 SPAM_KEYWORDS = [
     "vpn", "продвижение", "دعم", "ترويج", "subscribe", "مجاني", "click here", "buy now"
 ]
 
-# === Spam Check Function ===
 def is_spam(message):
     if message.from_user.is_bot:
         return True
     text = message.text.lower() if message.text else ""
-    return any(spam_word in text for spam_word in SPAM_KEYWORDS)
+    return any(word in text for word in SPAM_KEYWORDS)
 
-# === Contact Handler ===
 @bot.message_handler(content_types=["contact"])
 def handle_contact(message):
     if message.contact and message.contact.phone_number:
@@ -48,7 +53,6 @@ def handle_contact(message):
     else:
         bot.reply_to(message, "يرجى مشاركة رقم هاتفك.")
 
-# === /myrequests Command ===
 @bot.message_handler(commands=["myrequests"])
 def handle_myrequests(message):
     if message.from_user.id in user_phones:
@@ -56,53 +60,60 @@ def handle_myrequests(message):
     else:
         bot.reply_to(message, "يرجى أولاً إرسال رقم هاتفك.")
 
-# === General Message Handler ===
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def handle_order(message):
+    logger.info(f"📨 Received message from {message.from_user.id}: {message.text}")
     if is_spam(message):
         logger.info(f"Ignored spam from {message.from_user.id}: {message.text}")
         return
-
     if message.from_user.id not in user_phones:
         bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
         return
-
-    order_text = f"🆕 طلب جديد:\n👤 {message.from_user.first_name}\n🆔 {message.from_user.id}\n💬 {message.text}"
+    order_text = f"🆕 طلب جديد:
+👤 {message.from_user.first_name}
+🆔 {message.from_user.id}
+💬 {message.text}"
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 
-# === Flask Webhook Route ===
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    if request.headers.get("content-type") == "application/json":
-        json_string = request.get_data().decode("utf-8")
-        update = telebot.types.Update.de_json(json_string)
-        bot.process_new_updates([update])
-        return "", 200
-    return "Invalid content type", 403
+    try:
+        if request.headers.get("content-type") == "application/json":
+            json_string = request.get_data().decode("utf-8")
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+            return "", 200
+        else:
+            logger.warning("🚫 Invalid content type")
+            return "Invalid content type", 403
+    except Exception as e:
+        logger.error(f"🔥 Exception in webhook: {e}", exc_info=True)
+        return "Webhook error", 500
 
-# === Set Webhook Automatically ===
 def set_webhook():
-    webhook_set = bot.set_webhook(url=WEBHOOK_URL)
-    logger.info(f"📡 Webhook set to {WEBHOOK_URL}: {webhook_set}")
+    try:
+        success = bot.set_webhook(url=WEBHOOK_URL)
+        logger.info(f"📡 Webhook set: {success} => {WEBHOOK_URL}")
+    except Exception as e:
+        logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
 
-# === Keep-alive Ping to Prevent Railway Timeout ===
 def keep_alive():
     def ping():
         while True:
             try:
-                logger.info("🔄 Ping: sending self-request to keep Railway alive...")
                 requests.get(WEBHOOK_URL)
+                logger.info("🔄 Pinged webhook.")
             except Exception as e:
-                logger.warning(f"⚠️ Keep-alive error: {e}")
+                logger.warning(f"⚠️ Keep-alive ping failed: {e}")
             time.sleep(600)
+    try:
+        thread = threading.Thread(target=ping)
+        thread.daemon = True
+        thread.start()
+    except Exception as e:
+        logger.error(f"🔥 Keep-alive crashed: {e}", exc_info=True)
 
-    thread = threading.Thread(target=ping)
-    thread.daemon = True
-    thread.start()
-
-# === Startup ===
-app = Flask(__name__)
-    #set_webhook()
-    #keep_alive()
- 
+# === Always run these on import by Gunicorn ===
+set_webhook()
+keep_alive()
