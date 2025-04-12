@@ -77,27 +77,19 @@ def handle_order(message):
     
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
+@app.route("/webhook", methods=["POST"])
+def raw_webhook():
     try:
-        if request.headers.get("content-type") == "application/json":
-            json_string = request.get_data().decode("utf-8")
-            logger.info(f"📥 Incoming update: {json_string}")
+        # Get raw request body as text
+        json_data = request.get_data(as_text=True)
 
-            try:
-                update = telebot.types.Update.de_json(json_string)
-                bot.process_new_updates([update])
-            except Exception as bot_error:
-                logger.error(f"🤖 Bot processing error: {bot_error}", exc_info=True)
+        # Log the entire incoming Telegram payload
+        logger.info(f"📥 RAW TELEGRAM PAYLOAD:\n{json_data}")
 
-            return '', 200
-        else:
-            logger.warning("❌ Invalid content-type")
-            return "Invalid content-type", 403
+        return '', 200
     except Exception as e:
-        logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
-        return "Webhook crashed", 500
+        logger.error(f"🔥 RAW Webhook crashed: {e}", exc_info=True)
+        return "RAW Webhook error", 500
 
 @app.route("/debug", methods=["GET"])
 def debug():
