@@ -102,7 +102,7 @@ def keep_alive():
     thread.start()
 
 # === Startup ===
-if __name__ == "__main__":
+app = Flask(__name__)
     set_webhook()
     keep_alive()
  
