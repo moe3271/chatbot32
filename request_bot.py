@@ -76,7 +76,8 @@ def handle_order(message):
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 
-@app.route(f"/{TOKEN}", methods=["POST"])
+
+
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
@@ -85,13 +86,13 @@ def webhook():
             logger.info(f"📥 Incoming update: {json_string}")
             update = telebot.types.Update.de_json(json_string)
             bot.process_new_updates([update])
-            return "", 200
+            return '', 200
         else:
-            logger.warning("🚫 Invalid content-type for webhook")
-            return "Invalid content type", 403
+            logger.warning("❌ Invalid content-type")
+            return "Invalid content-type", 403
     except Exception as e:
-        logger.error(f"🔥 Webhook error: {e}", exc_info=True)
-        return "Webhook error", 500
+        logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
+        return "Webhook crashed", 500
 
 def set_webhook():
     try:
@@ -99,6 +100,11 @@ def set_webhook():
         logger.info(f"📡 Webhook set: {success} => {WEBHOOK_URL}")
     except Exception as e:
         logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
+        app.route("/debug", methods=["GET"])
+def debug():
+    logger.info("🐛 /debug was called")
+    return "Bot is alive!", 200
+
 
 def keep_alive():
     def ping():
