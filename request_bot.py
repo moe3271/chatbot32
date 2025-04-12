@@ -91,10 +91,10 @@ def keep_alive():
     def ping():
         while True:
             try:
+                logger.info("🔄 Ping: sending self-request to keep Railway alive...")
                 requests.get(WEBHOOK_URL)
-                logger.info("🔄 Pinged webhook to keep alive.")
             except Exception as e:
-                logger.warning(f"⚠️ Keep-alive failed: {e}")
+                logger.warning(f"⚠️ Keep-alive error: {e}")
             time.sleep(600)
 
     thread = threading.Thread(target=ping)
