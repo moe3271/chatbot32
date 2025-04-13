@@ -104,14 +104,13 @@ def set_webhook():
         logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
 
 def keep_alive():
-    def ping():
-        while True:
-            try:
-                requests.get(WEBHOOK_URL)
-                logger.info("🔄 Pinged webhook.")
-            except Exception as e:
-                logger.warning(f"⚠️ Keep-alive ping failed: {e}")
-            time.sleep(600)
+    while True:
+        try:
+            requests.get(WEBHOOK_URL)
+            logger.info("🔄 Pinged webhook.")
+        except Exception as e:
+            logger.warning(f"🚨 Keep-alive failed: {e}")
+        time.sleep(30)
     try:
         thread = threading.Thread(target=ping)
         thread.daemon = True
