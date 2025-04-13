@@ -90,6 +90,24 @@ def raw_webhook():
     except Exception as e:
         logger.error(f"🔥 RAW Webhook crashed: {e}", exc_info=True)
         return "RAW Webhook error", 500
+       
+        @app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    try:
+        if request.headers.get("content-type") == "application/json":
+            json_string = request.get_data().decode("utf-8")
+            logger.info(f"📥 Incoming update: {json_string}")
+
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+
+            return '', 200
+        else:
+            logger.warning("❌ Invalid content-type")
+            return "Invalid content-type", 403
+    except Exception as e:
+        logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
+        return "Webhook crashed", 500
 
 @app.route("/debug", methods=["GET"])
 def debug():
@@ -111,7 +129,7 @@ def keep_alive():
                 logger.info("🔄 Pinged webhook.")
             except Exception as e:
                 logger.warning(f"⚠️ Keep-alive ping failed: {e}")
-            time.sleep(500)
+            time.sleep(30)
     try:
         thread = threading.Thread(target=ping)
         thread.daemon = True
