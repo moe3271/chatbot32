@@ -13,12 +13,14 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
+telebot.logger.setLevel(logging.DEBUG)  # ✅ Enable detailed bot logs
+
 logger.info("🔍 Bot script is importing...")
 
 # === Read TOKEN from environment or raise error ===
 TOKEN = os.environ.get("TOKEN")
-if not TOKEN:
-    raise ValueError("Missing Telegram BOT TOKEN!")
+if not TOKEN or not TOKEN.startswith("7953137361:AAG"):
+    raise ValueError("Missing or invalid Telegram BOT TOKEN!")
 
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID") or "-1002258136452"
 WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
@@ -78,6 +80,22 @@ def handle_order(message):
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 
+@app.route(f"/{TOKEN}", methods=["POST"])
+def webhook():
+    try:
+        if request.headers.get("content-type") == "application/json":
+            json_string = request.get_data().decode("utf-8")
+            logger.info(f"📥 Incoming update: {json_string}")
+            update = telebot.types.Update.de_json(json_string)
+            bot.process_new_updates([update])
+            return '', 200
+        else:
+            logger.warning("❌ Invalid content-type")
+            return "Invalid content-type", 403
+    except Exception as e:
+        logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
+        return "Webhook crashed", 500
+
 @app.route("/webhook", methods=["POST"])
 def raw_webhook():
     try:
@@ -87,24 +105,6 @@ def raw_webhook():
     except Exception as e:
         logger.error(f"🔥 RAW Webhook crashed: {e}", exc_info=True)
         return "RAW Webhook error", 500
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    try:
-        if request.headers.get("content-type") == "application/json":
-            json_string = request.get_data().decode("utf-8")
-            logger.info(f"📥 Incoming update: {json_string}")
-
-            update = telebot.types.Update.de_json(json_string)
-            bot.process_new_updates([update])
-
-            return '', 200
-        else:
-            logger.warning("❌ Invalid content-type")
-            return "Invalid content-type", 403
-    except Exception as e:
-        logger.error(f"🔥 Webhook crashed: {e}", exc_info=True)
-        return "Webhook crashed", 500
 
 @app.route("/debug", methods=["GET"])
 def debug():
