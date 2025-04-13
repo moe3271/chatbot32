@@ -61,11 +61,11 @@ def handle_myrequests(message):
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def handle_order(message):
     logger.info(f"📨 Received message from {message.from_user.id}: {message.text}")
-    
+
     if is_spam(message):
         logger.info(f"Ignored spam from {message.from_user.id}: {message.text}")
         return
-    
+
     if message.from_user.id not in user_phones:
         bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
         return
@@ -74,24 +74,21 @@ def handle_order(message):
 👤 {message.from_user.first_name}
 🆔 {message.from_user.id}
 💬 {message.text}"""
-    
+
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
+
 @app.route("/webhook", methods=["POST"])
 def raw_webhook():
     try:
-        # Get raw request body as text
         json_data = request.get_data(as_text=True)
-
-        # Log the entire incoming Telegram payload
         logger.info(f"📥 RAW TELEGRAM PAYLOAD:\n{json_data}")
-
         return '', 200
     except Exception as e:
         logger.error(f"🔥 RAW Webhook crashed: {e}", exc_info=True)
         return "RAW Webhook error", 500
-       
-        @app.route(f"/{TOKEN}", methods=["POST"])
+
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
         if request.headers.get("content-type") == "application/json":
@@ -111,13 +108,13 @@ def webhook():
 
 @app.route("/debug", methods=["GET"])
 def debug():
-    logger.info("🐛 /debug was called")
+    logger.info("🤛 /debug was called")
     return "Bot is alive!", 200
 
 def set_webhook():
     try:
         success = bot.set_webhook(url=WEBHOOK_URL)
-        logger.info(f"📡 Webhook set: {success} => {WEBHOOK_URL}")
+        logger.info(f"📱 Webhook set: {success} => {WEBHOOK_URL}")
     except Exception as e:
         logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
 
@@ -129,7 +126,7 @@ def keep_alive():
                 logger.info("🔄 Pinged webhook.")
             except Exception as e:
                 logger.warning(f"⚠️ Keep-alive ping failed: {e}")
-            time.sleep(30)
+            time.sleep(500)
     try:
         thread = threading.Thread(target=ping)
         thread.daemon = True
