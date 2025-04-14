@@ -36,14 +36,12 @@ user_phones = set()
 
 # === Spam Keywords ===
 SPAM_KEYWORDS = [
-    "vpn", "продвижение", "دعم", "ترويج", "subscribe", "مجاني", "click here", "buy now"
+    "vpn", "продвижение", "подписка", "пробный период", "click here", "buy now",
+    "subscribe", "instagram", "youtube", "مجاني", "دعم", "ترويج", "@speeeedvpnbot"
 ]
-
 def is_spam(message):
-    if message.from_user.is_bot:
-        return True
-    text = message.text.lower() if message.text else ""
-    return any(word in text for word in SPAM_KEYWORDS)
+    text = message.text.lower()
+    return any(keyword in text for keyword in SPAM_KEYWORDS)
 
 @bot.message_handler(content_types=["contact"])
 def handle_contact(message):
