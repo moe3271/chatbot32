@@ -19,8 +19,7 @@ logger.info("🔍 Bot script is importing...")
 
 # === Read TOKEN from environment or raise error ===
 TOKEN = os.environ.get("TOKEN")
-if not TOKEN or not TOKEN.startswith("7953137361:AAG"):
-    raise ValueError("Missing or invalid Telegram BOT TOKEN!")
+
 
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID") or "-1002258136452"
 WEBHOOK_URL = f"https://chatbot32-production.up.railway.app/{TOKEN}"
@@ -112,7 +111,7 @@ def debug():
 def set_webhook():
     try:
         success = bot.set_webhook(url=WEBHOOK_URL)
-        logger.info(f"📱 Webhook set: {success} => {WEBHOOK_URL}")
+        logger.info(f"📱 Webhook set: {success} ")
     except Exception as e:
         logger.error(f"🔥 Failed to set webhook: {e}", exc_info=True)
 
@@ -135,3 +134,8 @@ def keep_alive():
 # === Always run these on import by Gunicorn ===
 set_webhook()
 keep_alive()
+# === Run Flask app locally if executed directly ===
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    logger.info(f"🚀 Running locally on port {port}")
+    app.run(host="0.0.0.0", port=port)
