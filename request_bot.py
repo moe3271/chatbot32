@@ -31,7 +31,7 @@ app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN)
 
 # === Track users who shared phone numbers ===
-user_phones = set()
+user_phones = {}  # user_id: phone_number
 
 # === Spam Keywords ===
 SPAM_KEYWORDS = [
@@ -53,14 +53,14 @@ def is_spam(message):
 def handle_contact(message):
     if message.contact and message.contact.phone_number:
         user_id = message.from_user.id
-        user_phones.add(user_id)
+        phone_number = message.contact.phone_number
+        user_phones[user_id] = phone_number
          # 🪛 Debugging output
-        print(f"✅ Stored phone for: {user_id}")
+        print(f"✅ Stored phone for: {user_id} ➜ {phone_number}")
         print(f"📦 Current users: {user_phones}")
         bot.reply_to(message, "✅ تم تسجيل رقم هاتفك بنجاح. يمكنك الآن إرسال طلبك.")
     else:
         bot.reply_to(message, "❌ لم يتم استلام رقم الهاتف. حاول مرة أخرى.")
-
 @bot.message_handler(commands=["myrequests"])
 def handle_myrequests(message):
     if message.from_user.id in user_phones:
@@ -81,10 +81,12 @@ def handle_order(message):
         return
 
     # 👇 The rest of your order handling logic goes here
-    order_text = f"""🆕 طلب جديد:
-👤 {message.from_user.first_name}
-🆔 {user_id}
-💬 {message.text}"""
+  user_phone = user_phones.get(user_id, "📵 رقم غير متوفر")
+order_text = f"""🆕 طلب جديد:
+👤 الاسم: {message.from_user.first_name}
+🆔 المعرف: {user_id}
+📞 الهاتف: {user_phone}
+💬 الطلب: {message.text}"""
 
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
