@@ -38,6 +38,13 @@ SPAM_KEYWORDS = [
     "vpn", "продвижение", "подписка", "пробный период", "click here", "buy now",
     "subscribe", "instagram", "youtube", "مجاني", "دعم", "ترويج", "@speeeedvpnbot"
 ]
+@bot.message_handler(commands=['start'])
+def handle_start(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    contact_button = types.KeyboardButton("📱 إرسال رقم الهاتف", request_contact=True)
+    markup.add(contact_button)
+    bot.send_message(message.chat.id, "👋 مرحباً! الرجاء الضغط على الزر لإرسال رقم هاتفك.", reply_markup=markup)
+    
 def is_spam(message):
     text = message.text.lower()
     return any(keyword in text for keyword in SPAM_KEYWORDS)
@@ -45,10 +52,14 @@ def is_spam(message):
 @bot.message_handler(content_types=["contact"])
 def handle_contact(message):
     if message.contact and message.contact.phone_number:
-        user_phones.add(message.from_user.id)
-        bot.reply_to(message, "تم حفظ رقمك بنجاح. الآن يمكنك إرسال طلبك.")
+        user_id = message.from_user.id
+        user_phones.add(user_id)
+         # 🪛 Debugging output
+        print(f"✅ Stored phone for: {user_id}")
+        print(f"📦 Current users: {user_phones}")
+        bot.reply_to(message, "✅ تم تسجيل رقم هاتفك بنجاح. يمكنك الآن إرسال طلبك.")
     else:
-        bot.reply_to(message, "يرجى مشاركة رقم هاتفك.")
+        bot.reply_to(message, "❌ لم يتم استلام رقم الهاتف. حاول مرة أخرى.")
 
 @bot.message_handler(commands=["myrequests"])
 def handle_myrequests(message):
@@ -59,24 +70,24 @@ def handle_myrequests(message):
 
 @bot.message_handler(func=lambda m: True, content_types=["text"])
 def handle_order(message):
-    logger.info(f"📨 Received message from {message.from_user.id}: {message.text}")
+    user_id = message.from_user.id
 
     if is_spam(message):
-        logger.info(f"Ignored spam from {message.from_user.id}: {message.text}")
+        logger.info(f"🚫 Ignored spam from {user_id}: {message.text}")
         return
 
-    if message.from_user.id not in user_phones:
-        bot.reply_to(message, "يرجى إرسال رقم هاتفك أولاً.")
+    if user_id not in user_phones:
+        handle_start(message)  # This will show the contact request button
         return
 
+    # 👇 The rest of your order handling logic goes here
     order_text = f"""🆕 طلب جديد:
 👤 {message.from_user.first_name}
-🆔 {message.from_user.id}
+🆔 {user_id}
 💬 {message.text}"""
 
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
-
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
