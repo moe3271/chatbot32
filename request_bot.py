@@ -80,14 +80,17 @@ def handle_order(message):
         handle_start(message)  # This will show the contact request button
         return
 
-    # 👇 The rest of your order handling logic goes here
-    order_text = f"""🆕 طلب جديد:
-👤👤 الاسم: {message.from_user.first_name} 
-📞 الهاتف: {user_phone}
-💬 {message.text}"""
+    user_phone = user_phones.get(user_id, "📵 رقم غير متوفر")
 
-    bot.send_message(ADMIN_CHAT_ID, order_text)
-    bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
+    order_text = f"""🆕 طلب جديد:
+👤 الاسم: {message.from_user.first_name}
+🆔 المعرف: {user_id}
+📞 الهاتف: {user_phone}
+💬 الطلب: {message.text}"""
+
+logger.info(f"📤 Sending order to group: {order_text}")
+bot.send_message(ADMIN_CHAT_ID, order_text)
+bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
