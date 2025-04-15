@@ -31,7 +31,7 @@ app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN)
 
 # === Track users who shared phone numbers ===
-user_phones = set()
+user_phones = {}
 
 # === Spam Keywords ===
 SPAM_KEYWORDS = [
@@ -53,7 +53,8 @@ def is_spam(message):
 def handle_contact(message):
     if message.contact and message.contact.phone_number:
         user_id = message.from_user.id
-        user_phones.add(user_id)
+        phone_number = message.contact.phone_number
+         user_phones[user_id] = phone_number
          # 🪛 Debugging output
         print(f"✅ Stored phone for: {user_id}")
         print(f"📦 Current users: {user_phones}")
