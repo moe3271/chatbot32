@@ -80,11 +80,13 @@ def handle_order(message):
         handle_start(message)  # This will show the contact request button
         return
 
-    # 👇 The rest of your order handling logic goes here
+    user_phone = user_phones.get(user_id, "📵 رقم غير متوفر")
+
     order_text = f"""🆕 طلب جديد:
-👤 {message.from_user.first_name}
-🆔 {user_id}
-💬 {message.text}"""
+👤 الاسم: {message.from_user.first_name}
+🆔 المعرف: {user_id}
+📞 الهاتف: {user_phone}
+💬 الطلب: {message.text}"""
 
     bot.send_message(ADMIN_CHAT_ID, order_text)
     bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
