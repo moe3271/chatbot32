@@ -31,7 +31,7 @@ app = Flask(__name__)
 bot = telebot.TeleBot(TOKEN)
 
 # === Track users who shared phone numbers ===
-user_phones = {}
+user_phones = set()
 
 # === Spam Keywords ===
 SPAM_KEYWORDS = [
@@ -53,8 +53,7 @@ def is_spam(message):
 def handle_contact(message):
     if message.contact and message.contact.phone_number:
         user_id = message.from_user.id
-        phone_number = message.contact.phone_number
-         user_phones[user_id] = phone_number
+        user_phones.add(user_id)
          # 🪛 Debugging output
         print(f"✅ Stored phone for: {user_id}")
         print(f"📦 Current users: {user_phones}")
@@ -78,24 +77,17 @@ def handle_order(message):
         return
 
     if user_id not in user_phones:
-        handle_start(message)
+        handle_start(message)  # This will show the contact request button
         return
 
-    user_phone = user_phones.get(user_id, "📵 رقم غير متوفر")
-
+    # 👇 The rest of your order handling logic goes here
     order_text = f"""🆕 طلب جديد:
-👤 الاسم: {message.from_user.first_name}
-🆔 المعرف: {user_id}
-📞 الهاتف: {user_phone}
-💬 الطلب: {message.text}"""
+👤 {message.from_user.first_name}
+🆔 {user_id}
+💬 {message.text}"""
 
-    logger.info(f"📤 Sending order to group: {order_text}")
-
-    try:
-        bot.send_message(ADMIN_CHAT_ID, order_text)
-        bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
-    except Exception as e:
-        logger.error(f"❌ Failed to send order to group: {e}", exc_info=True)
+    bot.send_message(ADMIN_CHAT_ID, order_text)
+    bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
