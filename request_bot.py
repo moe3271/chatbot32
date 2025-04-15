@@ -82,8 +82,8 @@ def handle_order(message):
 
     # 👇 The rest of your order handling logic goes here
     order_text = f"""🆕 طلب جديد:
-👤 {message.from_user.first_name}
-🆔 {user_id}
+👤👤 الاسم: {message.from_user.first_name} 
+📞 الهاتف: {user_phone}
 💬 {message.text}"""
 
     bot.send_message(ADMIN_CHAT_ID, order_text)
