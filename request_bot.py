@@ -77,7 +77,7 @@ def handle_order(message):
         return
 
     if user_id not in user_phones:
-        handle_start(message)  # This will show the contact request button
+        handle_start(message)
         return
 
     user_phone = user_phones.get(user_id, "📵 رقم غير متوفر")
@@ -88,9 +88,13 @@ def handle_order(message):
 📞 الهاتف: {user_phone}
 💬 الطلب: {message.text}"""
 
-logger.info(f"📤 Sending order to group: {order_text}")
-bot.send_message(ADMIN_CHAT_ID, order_text)
-bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
+    logger.info(f"📤 Sending order to group: {order_text}")
+
+    try:
+        bot.send_message(ADMIN_CHAT_ID, order_text)
+        bot.reply_to(message, "✅ تم إرسال طلبك بنجاح.")
+    except Exception as e:
+        logger.error(f"❌ Failed to send order to group: {e}", exc_info=True)
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
     try:
